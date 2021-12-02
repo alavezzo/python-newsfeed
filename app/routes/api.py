@@ -38,3 +38,35 @@ def signup():
     session['loggedIn'] = True
 
     return jsonify(id = newUser.id)
+
+@bp.route('/users/logout', methods=['POST'])
+def logout():
+    # remove session variables
+    session.clear()
+    return '', 204
+    # status of 204 indicates that there is no content
+
+@bp.route('/users/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    db = get_db()
+    # check whether the user's posted email address exists in the database 
+    # SQLAlchemy will throw a NoResultFound error if the user doesn't exist so you need to wrap the query in a try... except statement
+    try: 
+        user = db.query(User).filter(User.email == data['email']).one()
+    except:
+        print(sys.exc_info()[0])
+
+        return jsonify(message = 'Incorrect credentials'), 400
+
+    #if user exists then we need to verify the password
+    #need to decrypt the password first so we will add a method to the USer model that will do this for us
+
+    if user.verify_password(data['password']) == False: 
+        return jsonify(message = 'Incorrect credentials'), 400
+
+    session.clear()
+    session['user_id'] = user.id
+    session['loggedIn'] = True
+    
+    return jsonify(id = user.id)
